@@ -7,6 +7,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/customers');
 const listRoutes = require('./routes/label');
+const userRoutes =require('./routes/user');
 
 const app = express();
 
@@ -21,7 +22,7 @@ app.use(cors());
 //routes
 app.use('/customer', authRoutes); 
 app.use('/label', listRoutes); 
-
+app.use('/user',userRoutes);
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGO_URI, {
