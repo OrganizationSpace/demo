@@ -9,7 +9,7 @@ const CustomerSchema = new mongoose.Schema({
         trim: true,
     },
     password: {
-        type: String
+        type: String,required: true,
     },
     email: {
         type: String,

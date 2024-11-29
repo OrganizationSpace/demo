@@ -5,8 +5,8 @@ const morgan = require('morgan');
 const cors = require('cors');
 require('dotenv').config();
 
-const authRoutes = require('./routes/user');
-const listRoutes = require('./routes/customer');
+const authRoutes = require('./routes/customers');
+const listRoutes = require('./routes/label');
 
 const app = express();
 
@@ -19,7 +19,7 @@ app.use(express.urlencoded({extended: true}))
 app.use(cors());
 
 //routes
-app.use('/user', authRoutes); 
+app.use('/customer', authRoutes); 
 app.use('/label', listRoutes); 
 
 
