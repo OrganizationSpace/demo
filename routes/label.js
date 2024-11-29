@@ -3,6 +3,8 @@ const authorization = require('../functions/auth');
 const Customer = require('../models/Customer');
 const { encryptIDs, decryptIDs } = require('../functions/utils');
 const Organization = require('../models/Organization');
+const zlib = require('zlib');
+
 
 const router = express.Router();
 
@@ -28,7 +30,7 @@ router.post('/add',authorization, async (req, res) => {
 });
 
 //List the labels one user
-router.post('/list', authorization,async (req, res) => {
+router.get('/list', authorization,async (req, res) => {
     try {
         const labelList = await Organization.findOne(
             { workspace:req.workspace}, // Filter by the provided email
@@ -62,40 +64,69 @@ router.post('/delete',authorization, async (req, res) => {
 });
 
 //Asign label
-router.post('/assign-labels', authorization,async (req, res) => {
-    const { customerIds,  label } = req.body;
-
+router.post('/assign-labels', authorization, async (req, res) => {
+    const { label,customerIds } = req.body;
+    // const encodedString = req.body.customerIds; // Base64 encoded customer IDs
     try {
-        console.log(req.body);
+        console.log("Request Body:", req.body);
 
-        // Fetch the organization based on the workspace
-        const organization = await Organization.findOne({ workspace:req.workspace });
+        // Step 1: Fetch the organization based on the workspace
+        const organization = await Organization.findOne({ workspace: req.workspace });
         if (!organization) {
             return res.status(404).json({ message: 'Workspace not found' });
         }
+console.log('Organization',organization);
 
-        // // Check if the provided label exists in the organization's labels
-        // if (!organization.labels.includes(label)) {
-        //     return res.status(400).json({ message: 'The provided label does not exist in the organization' });
-        // }
+        // Step 2: Check if the provided label exists in the organization's labels
+        if (!organization.labels.includes(label)) {
+            return res.status(400).json({ message: 'The provided label does not exist in the organization' });
+        }
 
-        // Encrypt the customer IDs
-        const encryptedId = encryptIDs(customerIds);
-        console.log(`Encrypted Data: ${encryptedId}`);
+        // Step 3: Decode and decompress customer IDs
+        let decodedString;
+        try {
+            const decodedBuffer = Buffer.from(customerIds, 'base64'); // Decode Base64 string
+            console.log(decodedBuffer);
+            
+            const decompressedBuffer = await new Promise((resolve, reject) => {
+                zlib.gunzip(decodedBuffer, (err, result) => {
+                    if (err) reject(err);
+                    else resolve(result);
+                });
+            });
+            console.log(decompressedBuffer);
+            
+            decodedString = decompressedBuffer.toString('utf-8'); // Convert buffer to string
+        } catch (err) {
+            console.error('Error decompressing customer IDs:', err);
+            return res.status(400).json({ message: 'Invalid or corrupted customer IDs', error: err.message });
+        }
 
-        // Update the database for all customer IDs
+        // Step 4: Parse the decoded string into an array of customer IDs
+        let decodeCustomerIds;
+        try {
+            decodeCustomerIds = JSON.parse(decodedString); // Parse JSON string
+        } catch (err) {
+            console.error('Error parsing JSON:', err);
+            return res.status(400).json({ message: 'Invalid JSON in customer IDs', error: err.message });
+        }
+
+        console.log("Decrypted Customer IDs:", decodeCustomerIds);
+
+        // Step 5: Update the database for the provided customer IDs
         const updateResult = await Customer.updateMany(
-            { _id: { $in: customerIds } }, // Filter for customer IDs
-            { $addToSet: { labels: label } }, // Add the single label to customers
-            { new: true } // Option to return updated documents
+            { _id: { $in: decodeCustomerIds } }, // Filter: Customers whose IDs match
+            { $addToSet: { labels: label } }, // Update: Add the label to the "labels" array
+            { new: true } // Option: Return the updated documents
         );
 
-        // Extract matchedCount and modifiedCount from the MongoDB response
-        // const { matchedCount, modifiedCount } = updateResult;
+        console.log('Update Result:', updateResult);
 
-        // Respond with the encrypted IDs and update counts
+        // Step 6: Respond with success
         res.status(200).json({
-            message: `Label  assigned successfully from organization`,
+            message: `Label "${label}" assigned successfully to customers.`,
+            // matchedCount: updateResult.matchedCount || 0,
+            // modifiedCount: updateResult.modifiedCount || 0,
         });
     } catch (error) {
         console.error('Error assigning label:', error);

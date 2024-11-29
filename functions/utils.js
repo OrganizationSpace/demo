@@ -20,10 +20,16 @@ const encryptIDs = (ids) => {
 // Decrypt and decompress IDs
 const decryptIDs = (encryptedData) => {
     const encryptedBuffer = Buffer.from(encryptedData, 'base64');
+    console.log("encryptedBuffer",encryptedBuffer);
+    
     const decipher = crypto.createDecipher('aes-256-cbc', ENCRYPTION_KEY);
     const decrypted = Buffer.concat([decipher.update(encryptedBuffer), decipher.final()]);
     const decompressed = zlib.gunzipSync(decrypted);
-    return JSON.parse(decompressed.toString());
+     req.dedata=  JSON.parse(decompressed.toString());
+     const de =req.dedata
+     console.log("de",de);
+     
+     return de
 };
 
 module.exports = { encryptIDs, decryptIDs };
