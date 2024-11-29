@@ -1,4 +1,5 @@
 // routes/auth.js
+////////
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const Customer = require('../models/Customer');
