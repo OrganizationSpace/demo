@@ -86,7 +86,7 @@ router.post('/login', async (req, res) => {
 
 //add customer
 router.post('/add', authorization, async (req, res) => {
-  const { name, email, display_name ,contact_number, dob } = req.body;
+  const { name, email, display_name ,contact_number, dob , password } = req.body;
 
   try {
       // Check if a customer with the given email already exists
@@ -103,6 +103,7 @@ router.post('/add', authorization, async (req, res) => {
           display_name,
           contact_number,   
           dob,
+          password
       });
 
       // Save to the database
