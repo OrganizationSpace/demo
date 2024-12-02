@@ -2,6 +2,7 @@
 const express = require('express');
 const Customer = require('../models/Customer');
 const authorization = require('../functions/auth');
+const zlib =require('zlib');
 
 require('dotenv').config();
 
@@ -108,6 +109,66 @@ router.post('/delete',authorization, async (req, res) => {
       res.status(500).json({ error: 'An error occurred while deleting the customer' });
   }
 });
+
+
+router.post('/encrypt-customer-ids', (req, res) => {
+  const { customerIds } = req.body;
+
+
+  try {
+      const jsonString = JSON.stringify(customerIds);
+      const compressedBuffer = zlib.gzipSync(jsonString); // Ensure gzipSync is used
+      const base64Encoded = compressedBuffer.toString('base64');
+      res.status(200).json({ encryptedData: base64Encoded });
+  } catch (error) {
+      res.status(500).json({ message: 'Encryption failed', error: error.message });
+  }
+});
+
+
+router.post('/delete-customers', authorization, async (req, res) => {
+const { customerIds } = req.body;
+
+try {
+    // Decode the Base64-encoded string
+    let decodedBuffer;
+    try {
+        decodedBuffer = Buffer.from(customerIds, 'base64');
+        console.log("Decoded Buffer:", decodedBuffer);
+    } catch (err) {
+        return res.status(400).json({ message: 'Invalid Base64 encoding', error: err.message });
+    }
+
+    // Decompress the buffer
+    let decompressedBuffer;
+    try {
+        decompressedBuffer = zlib.gunzipSync(decodedBuffer);
+        console.log("Decompressed Buffer:", decompressedBuffer);
+    } catch (err) {
+        return res.status(400).json({ message: 'Error decompressing customer IDs', error: err.message });
+    }
+
+    // Parse the decompressed buffer to get customer IDs
+    let decodedCustomerIds;
+    try {
+        decodedCustomerIds = JSON.parse(decompressedBuffer.toString('utf-8'));
+        console.log("Decoded Customer IDs:", decodedCustomerIds);
+    } catch (err) {
+        return res.status(400).json({ message: 'Invalid JSON in customer IDs', error: err.message });
+    }
+
+    // Delete customers with the provided IDs
+    const deleteResult = await Customer.deleteMany({ _id: { $in: decodedCustomerIds } });
+
+    res.status(200).json({
+        message: `Customers deleted successfully.`,
+        deletedCount: deleteResult.deletedCount || 0
+    });
+} catch (error) {
+    res.status(500).json({ message: 'Error deleting customers', error: error.message });
+}
+});
+
 
 module.exports = router;
 
