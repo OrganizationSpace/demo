@@ -1,7 +1,6 @@
 const express = require('express');
 const authorization = require('../functions/auth');
 const Customer = require('../models/Customer');
-const { encryptIDs, decryptIDs } = require('../functions/utils');
 const Organization = require('../models/Organization');
 const zlib = require('zlib');
 
@@ -63,95 +62,168 @@ router.post('/delete',authorization, async (req, res) => {
     }
 });
 
-//Asign label
-router.post('/assign-labels', authorization, async (req, res) => {
-    const { label,customerIds } = req.body;
-    // const encodedString = req.body.customerIds; // Base64 encoded customer IDs
+router.post('/encrypt-customer-ids', (req, res) => {
+    const { customerIds } = req.body;
+
+
     try {
-        console.log("Request Body:", req.body);
+        const jsonString = JSON.stringify(customerIds);
+        const compressedBuffer = zlib.gzipSync(jsonString); // Ensure gzipSync is used
+        const base64Encoded = compressedBuffer.toString('base64');
+        res.status(200).json({ encryptedData: base64Encoded });
+    } catch (error) {
+        res.status(500).json({ message: 'Encryption failed', error: error.message });
+    }
+});
 
-        // Step 1: Fetch the organization based on the workspace
+router.post('/assign-labels', authorization, async (req, res) => {
+    const { label, customerIds } = req.body;
+
+    try {
         const organization = await Organization.findOne({ workspace: req.workspace });
-        if (!organization) {
-            return res.status(404).json({ message: 'Workspace not found' });
-        }
-console.log('Organization',organization);
-
-        // Step 2: Check if the provided label exists in the organization's labels
-        if (!organization.labels.includes(label)) {
-            return res.status(400).json({ message: 'The provided label does not exist in the organization' });
-        }
-
-        // Step 3: Decode and decompress customer IDs
-        let decodedString;
+        
+        let decodedBuffer;
         try {
-            const decodedBuffer = Buffer.from(customerIds, 'base64'); // Decode Base64 string
-            console.log(decodedBuffer);
-            
-            const decompressedBuffer = await new Promise((resolve, reject) => {
-                zlib.gunzip(decodedBuffer, (err, result) => {
-                    if (err) reject(err);
-                    else resolve(result);
-                });
-            });
-            console.log(decompressedBuffer);
-            
-            decodedString = decompressedBuffer.toString('utf-8'); // Convert buffer to string
+            decodedBuffer = Buffer.from(customerIds, 'base64');
+            console.log("DecodeBuffer:",decodedBuffer);
         } catch (err) {
-            console.error('Error decompressing customer IDs:', err);
-            return res.status(400).json({ message: 'Invalid or corrupted customer IDs', error: err.message });
+            return res.status(400).json({ message: 'Invalid Base64 encoding', error: err.message });
         }
 
-        // Step 4: Parse the decoded string into an array of customer IDs
+        let decompressedBuffer;
+        try {
+            decompressedBuffer = zlib.gunzipSync(decodedBuffer);
+            console.log("DecompressedBuffer:",decompressedBuffer);
+        } catch (err) {
+            return res.status(400).json({ message: 'Error decompressing customer IDs', error: err.message });
+        }
+
         let decodeCustomerIds;
         try {
-            decodeCustomerIds = JSON.parse(decodedString); // Parse JSON string
+            decodeCustomerIds = JSON.parse(decompressedBuffer.toString('utf-8'));
+            console.log("DecodeCustomerIds:",decodeCustomerIds);
         } catch (err) {
-            console.error('Error parsing JSON:', err);
             return res.status(400).json({ message: 'Invalid JSON in customer IDs', error: err.message });
         }
 
-        console.log("Decrypted Customer IDs:", decodeCustomerIds);
-
-        // Step 5: Update the database for the provided customer IDs
         const updateResult = await Customer.updateMany(
-            { _id: { $in: decodeCustomerIds } }, // Filter: Customers whose IDs match
-            { $addToSet: { labels: label } }, // Update: Add the label to the "labels" array
-            { new: true } // Option: Return the updated documents
+            { _id: { $in: decodeCustomerIds } },
+            { $addToSet: { labels: label } }
         );
 
-        console.log('Update Result:', updateResult);
-
-        // Step 6: Respond with success
         res.status(200).json({
-            message: `Label "${label}" assigned successfully to customers.`,
+            message: `Label  assigned successfully to customers.`,
             // matchedCount: updateResult.matchedCount || 0,
             // modifiedCount: updateResult.modifiedCount || 0,
         });
     } catch (error) {
-        console.error('Error assigning label:', error);
         res.status(500).json({ message: 'Error assigning label to customers', error: error.message });
     }
 });
 
-//decrypt
-router.post('/decrypt-ids', async (req, res) => {
-    const { encryptedId } = req.body;
-
-    try {
-        // Decrypt the encrypted ID
-        const ids = decryptIDs(encryptedId);
-        console.log('Decrypted IDs:', ids);
-
-        // Respond with the original IDs
-        res.status(200).json({
-            message: 'IDs decrypted successfully',
-            ids
-        });
-    } catch (error) {
-        console.error('Error decrypting IDs:', error);
-        res.status(500).json({ message: 'Error decrypting IDs', error: error.message });
-    }
-});
  
 module.exports =router;
+
+
+
+
+
+
+
+
+
+
+// const { encryptIDs, decryptIDs } = require('../functions/utils');
+
+// //decrypt
+// router.post('/decrypt-ids', async (req, res) => {
+//     const { encryptedId } = req.body;
+
+//     try {
+//         // Decrypt the encrypted ID
+//         const ids = decryptIDs(encryptedId);
+//         console.log('Decrypted IDs:', ids);
+
+//         // Respond with the original IDs
+//         res.status(200).json({
+//             message: 'IDs decrypted successfully',
+//             ids
+//         });
+//     } catch (error) {
+//         console.error('Error decrypting IDs:', error);
+//         res.status(500).json({ message: 'Error decrypting IDs', error: error.message });
+//     }
+// });
+
+
+
+// //Asign label
+// router.post('/assign-labels', authorization, async (req, res) => {
+//     const { label,customerIds } = req.body;
+//     // const encodedString = req.body.customerIds; // Base64 encoded customer IDs
+//     try {
+//         console.log("Request Body:", req.body);
+
+//         // Step 1: Fetch the organization based on the workspace
+//         const organization = await Organization.findOne({ workspace: req.workspace });
+//         if (!organization) {
+//             return res.status(404).json({ message: 'Workspace not found' });
+//         }
+//         console.log('Organization',organization);
+
+//         // Step 2: Check if the provided label exists in the organization's labels
+//         if (!organization.labels.includes(label)) {
+//             return res.status(400).json({ message: 'The provided label does not exist in the organization' });
+//         }
+
+//         // Step 3: Decode and decompress customer IDs
+//         let decodedString;
+//         try {
+//             const decodedBuffer = Buffer.from(customerIds, 'base64'); // Decode Base64 string
+//             console.log(decodedBuffer);
+            
+//             const decompressedBuffer = await new Promise((resolve, reject) => {
+//                 zlib.gunzip(decodedBuffer, (err, result) => {
+//                     if (err) reject(err);
+//                     else resolve(result);
+//                 });
+//             });
+//             console.log(decompressedBuffer);
+            
+//             decodedString = decompressedBuffer.toString('utf-8'); // Convert buffer to string
+//         } catch (err) {
+//             console.error('Error decompressing customer IDs:', err);
+//             return res.status(400).json({ message: 'Invalid or corrupted customer IDs', error: err.message });
+//         }
+
+//         // Step 4: Parse the decoded string into an array of customer IDs
+//         let decodeCustomerIds;
+//         try {
+//             decodeCustomerIds = JSON.parse(decodedString); // Parse JSON string
+//         } catch (err) {
+//             console.error('Error parsing JSON:', err);
+//             return res.status(400).json({ message: 'Invalid JSON in customer IDs', error: err.message });
+//         }
+
+//         console.log("Decrypted Customer IDs:", decodeCustomerIds);
+
+//         // Step 5: Update the database for the provided customer IDs
+//         const updateResult = await Customer.updateMany(
+//             { _id: { $in: decodeCustomerIds } }, // Filter: Customers whose IDs match
+//             { $addToSet: { labels: label } }, // Update: Add the label to the "labels" array
+//             { new: true } // Option: Return the updated documents
+//         );
+
+//         console.log('Update Result:', updateResult);
+
+//         // Step 6: Respond with success
+//         res.status(200).json({
+//             message: `Label "${label}" assigned successfully to customers.`,
+//             // matchedCount: updateResult.matchedCount || 0,
+//             // modifiedCount: updateResult.modifiedCount || 0,
+//         });
+//     } catch (error) {
+//         console.error('Error assigning label:', error);
+//         res.status(500).json({ message: 'Error assigning label to customers', error: error.message });
+//     }
+// });
