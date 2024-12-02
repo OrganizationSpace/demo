@@ -48,38 +48,46 @@ router.post('/register', async (req, res) => {
     }
   });
   
-  // Route: Login and Generate Token
-  router.post('/login', async (req, res) => {
-      const { email, password } = req.body;
-    
-      try {
-        // Find the customer by email
-        const customer = await Customer.findOne({ email });
-        if (!customer) return res.status(404).json({ message: 'Email not found' });
-    
-        // Check if the password matches 
-        if (customer.password !== password) return res.status(400).json({ message: 'Invalid credentials' });
-    
-        // Generate JWT token
-        const token = jwt.sign({
-           id: customer._id.toString(),//toString: that converts an object, number, array, or other data types into a string representation. 
-           email:customer.email,
-          workspace:customer.workspace },
-            process.env.JWT_SECRET, { expiresIn: '1h' });
-            
-        // Set the data as a response header 
-        res.setHeader('token',token)
-        res.setHeader('id',customer._id.toString())
-        res.setHeader('email', customer.email);
-        res.setHeader('workspace', customer.workspace);
-  
-  
-        res.setHeader('Access-Control-Expose-Headers', 'token, id, email');
-  
-        res.status(200).json({ message: 'Login successful' ,token});
-      } catch (error) {
-        res.status(500).json({ message: 'Error during login', error: error.message });
+// Route: Login and Generate Token
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  // Validate input fields
+  if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+  }
+
+  try {
+      // Query the database to find a matching email and password
+      const customer = await Customer.findOne({ email, password });
+
+      if (!customer) {
+          return res.status(400).json({ message: 'Invalid credentials' });
       }
-    });
+
+      // Generate JWT token
+      const token = jwt.sign(
+          {
+              id: customer._id.toString(), // Convert ID to string
+              email: customer.email,
+              workspace: customer.workspace
+          },
+          process.env.JWT_SECRET,
+          { expiresIn: '1h' }
+      );
+
+      // Set the data as response headers
+      res.setHeader('token', token);
+      res.setHeader('id', customer._id.toString());
+      res.setHeader('email', customer.email);
+      res.setHeader('workspace', customer.workspace);
+      res.setHeader('Access-Control-Expose-Headers', 'token, id, email, workspace');
+
+      res.status(200).json({ message: 'Login successful', token });
+  } catch (error) {
+      res.status(500).json({ message: 'Error during login', error: error.message });
+  }
+});
+
 
 module.exports = router;
