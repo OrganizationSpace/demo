@@ -59,28 +59,28 @@ router.post('/login', async (req, res) => {
 
   try {
       // Query the database to find a matching email and password
-      const customer = await Customer.findOne({ email, password });
+      const loginCustomer = await Customer.findOne({ email, password });
 
-      if (!customer) {
+      if (!loginCustomer) {
           return res.status(400).json({ message: 'Invalid credentials' });
       }
 
       // Generate JWT token
       const token = jwt.sign(
           {
-              id: customer._id.toString(), // Convert ID to string
-              email: customer.email,
-              workspace: customer.workspace
+              id: loginCustomer._id.toString(), // Convert ID to string
+              email: loginCustomer.email,
+              workspace: loginCustomer.workspace
           },
           process.env.JWT_SECRET,
-          { expiresIn: '1h' }
+          { expiresIn: '6h' }
       );
 
       // Set the data as response headers
       res.setHeader('token', token);
-      res.setHeader('id', customer._id.toString());
-      res.setHeader('email', customer.email);
-      res.setHeader('workspace', customer.workspace);
+      res.setHeader('id', loginCustomer._id.toString());
+      res.setHeader('email', loginCustomer.email);
+      res.setHeader('workspace', loginCustomer.workspace);
       res.setHeader('Access-Control-Expose-Headers', 'token, id, email, workspace');
 
       res.status(200).json({ message: 'Login successful', token });
