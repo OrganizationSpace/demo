@@ -169,6 +169,33 @@ try {
 }
 });
 
+router.post('/deletes', authorization, async (req, res) => {
+    const { ids } = req.body; // Expect an array of IDs
+    const workspace = req.workspace;
+  
+    try {
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: 'Please provide an array of customer IDs to delete' });
+      }
+  
+      const result = await Customer.deleteMany({
+        workspace,
+        _id: { $in: ids }
+      });
+  
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ error: 'No customers found to delete' });
+      }
+  
+      res.status(200).json({
+        success: true,
+        message: `${result.deletedCount} customer(s) deleted successfully`
+      });
+    } catch (error) {
+      console.error('Error deleting customers:', error);
+      res.status(500).json({ error: 'An error occurred while deleting customers' });
+    }
+});  
 
 module.exports = router;
 

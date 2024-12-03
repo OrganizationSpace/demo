@@ -1,12 +1,10 @@
-const express = require('express');
-const authorization = require('../functions/auth');
-const Customer = require('../models/Customer');
-const Organization = require('../models/Organization');
-const zlib = require('zlib');
+const express = require('express');//Import the Express framework 
+const authorization = require('../functions/auth');//Import a custom authorization function for token handling 
+const Customer = require('../models/Customer');//Import the Customer model to interact with the Customer database collection
+const Organization = require('../models/Organization');//Import the Organization model to interact with the Organization database collection
+const zlib = require('zlib');//Import the Zlib library for data compression and decompression
 
-
-const router = express.Router();
-
+const router = express.Router();//Create an Express router instance to define and manage routes for the application
 
 //Add a labels 
 router.post('/add',authorization, async (req, res) => {
