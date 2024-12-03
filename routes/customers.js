@@ -126,76 +126,64 @@ router.post('/encrypt-customer-ids', (req, res) => {
 });
 
 
-router.post('/delete-customers', authorization, async (req, res) => {
-const { customerIds } = req.body;
-
-try {
-    // Decode the Base64-encoded string
-    let decodedBuffer;
-    try {
-        decodedBuffer = Buffer.from(customerIds, 'base64');
-        console.log("Decoded Buffer:", decodedBuffer);
-    } catch (err) {
-        return res.status(400).json({ message: 'Invalid Base64 encoding', error: err.message });
-    }
-
-    // Decompress the buffer
-    let decompressedBuffer;
-    try {
-        decompressedBuffer = zlib.gunzipSync(decodedBuffer);
-        console.log("Decompressed Buffer:", decompressedBuffer);
-    } catch (err) {
-        return res.status(400).json({ message: 'Error decompressing customer IDs', error: err.message });
-    }
-
-    // Parse the decompressed buffer to get customer IDs
-    let decodedCustomerIds;
-    try {
-        decodedCustomerIds = JSON.parse(decompressedBuffer.toString('utf-8'));
-        console.log("Decoded Customer IDs:", decodedCustomerIds);
-    } catch (err) {
-        return res.status(400).json({ message: 'Invalid JSON in customer IDs', error: err.message });
-    }
-
-    // Delete customers with the provided IDs
-    const deleteResult = await Customer.deleteMany({ _id: { $in: decodedCustomerIds } });
-
-    res.status(200).json({
-        message: `Customers deleted successfully.`,
-        deletedCount: deleteResult.deletedCount || 0
-    });
-} catch (error) {
-    res.status(500).json({ message: 'Error deleting customers', error: error.message });
-}
-});
+// Delete multiple customers by encrypted IDs
 
 router.post('/deletes', authorization, async (req, res) => {
-    const { ids } = req.body; // Expect an array of IDs
+    const { encryptedIds } = req.body; // Encrypted and compressed customer IDs (base64 string)
     const workspace = req.workspace;
-  
+
     try {
-      if (!Array.isArray(ids) || ids.length === 0) {
-        return res.status(400).json({ error: 'Please provide an array of customer IDs to delete' });
-      }
-  
-      const result = await Customer.deleteMany({
-        workspace,
-        _id: { $in: ids }
-      });
-  
-      if (result.deletedCount === 0) {
-        return res.status(404).json({ error: 'No customers found to delete' });
-      }
-  
-      res.status(200).json({
-        success: true,
-        message: `${result.deletedCount} customer(s) deleted successfully`
-      });
+        // Validate the input
+        if (!encryptedIds) {
+            return res.status(400).json({ error: 'Please provide encrypted customer IDs' });
+        }
+
+        // Decode from Base64
+        const decodedBuffer = Buffer.from(encryptedIds, 'base64');
+        
+        // Decompress the buffer (assume gzip compression)
+        const decompressedBuffer = await new Promise((resolve, reject) => {
+            zlib.gunzip(decodedBuffer, (err, result) => {
+                if (err) reject(err);
+                else resolve(result);
+            });
+        });
+
+        // Convert the decompressed data into a string
+        const decryptedString = decompressedBuffer.toString('utf-8');
+
+        // Parse the JSON string to get the list of IDs
+        const ids = JSON.parse(decryptedString);
+
+        console.log('Decrypted IDs:', ids);
+
+        // Validate the decrypted IDs
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ error: 'Decrypted data does not contain valid customer IDs' });
+        }
+
+        // Delete customers matching the IDs and workspace
+        const result = await Customer.deleteMany({
+            workspace,
+            _id: { $in: ids },
+        });
+
+        // Check if any customers were deleted
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ error: 'No customers found to delete' });
+        }
+
+        // Send success response
+        res.status(200).json({
+            success: true,
+            message: `${result.deletedCount} customer(s) deleted successfully`,
+        });
     } catch (error) {
-      console.error('Error deleting customers:', error);
-      res.status(500).json({ error: 'An error occurred while deleting customers' });
+        console.error('Error decrypting or deleting customers:', error);
+        res.status(500).json({ error: 'An error occurred while processing the request' });
     }
-});  
+});
+
 
 module.exports = router;
 
