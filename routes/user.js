@@ -49,7 +49,7 @@ router.post('/register', async (req, res) => {//Define a POST route for customer
       await newOrganization.save();
 
       //Send a 200 OK response indicating successful registration with the workspace name
-      res.status(200).json({ message: 'Customer registered successfully', workspace: workspaceName });
+      res.status(200).json({ message: 'Customer registered successfully'});
   } catch (error) {
       res.status(500).json({ message: 'Error registering customer', error: error.message });
   }
