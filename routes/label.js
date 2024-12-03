@@ -7,91 +7,114 @@ const zlib = require('zlib');//Import the Zlib library for data compression and 
 const router = express.Router();//Create an Express router instance to define and manage routes for the application
 
 //Add a labels 
-router.post('/add',authorization, async (req, res) => {
-    const { labels } = req.body;
+router.post('/add', authorization, async (req, res) => {//Define a POST route to add labels, using the `authorization` middleware for authentication
+
+    const { labels } = req.body;    //Destructure the `labels` array from the request body
+
     try {
         console.log(req.body);
         console.log("Workspace:", req.workspace);
-        // Directly update the labels by email
-        const addLabel = await Organization.findOneAndUpdate({
-            workspace:req.workspace}, // Filter by the provided email
-            { $addToSet: { labels: labels}},// Use $each to add multiple labels//update and avoid duplicates
-            { new: true } // Return the updated document
+
+        //Use `findOneAndUpdate` to find the organization by the user's workspace and update it
+        const addLabel = await Organization.findOneAndUpdate(
+            { workspace: req.workspace }, // Filter: Match by the workspace
+            { $addToSet: { labels: labels } }, // Update: Add new labels, avoiding duplicates
+            { new: true } // Option: Return the updated document
         );
-        console.log("list",addLabel);
-        
+
+        console.log("list", addLabel);
+
+        //Respond with a 200 status and the updated organization data
         res.status(200).json(addLabel);
     } catch (error) {
+        //Handle errors and respond with a 500 status and an error message
         res.status(500).json({ error: 'An error occurred while updating labels' });
     }
 });
 
-//List the labels one user
-router.get('/list', authorization,async (req, res) => {
+//List the labels 
+router.get('/list', authorization, async (req, res) => {//Define a GET route to fetch a list of labels, using `authorization` middleware for authentication
+
     try {
+        //Query the database to find the organization by the user's workspace
         const labelList = await Organization.findOne(
-            { workspace:req.workspace}, // Filter by the provided email
-            { labels: 1, _id: 0 } // Include only the `labels` field, exclude `_id`
+            { workspace: req.workspace }, // Filter: Match by the workspace extracted from the token
+            { labels: 1, _id: 0 } // Projection: Include only the `labels` field, exclude the `_id` field
         );
+
         res.status(200).json(labelList);
     } catch (error) {
         console.error('Error fetching labels:', error);
+
         res.status(500).json({ error: 'An error occurred while fetching labels' });
     }
 });
 
 //Delete the labels 
-router.post('/delete',authorization, async (req, res) => {
+router.post('/delete', authorization, async (req, res) => {//Define a POST route to delete labels, using `authorization` middleware for authentication
+
+    //Extract the `labels` array from the request body
     const { labels } = req.body;
+
     console.log(req.body);
     console.log(req.workspace);
-    
 
     try {
+        //Use `updateOne` to find the organization by the workspace and remove labels
         const deleteLabel = await Organization.updateOne(
-            { workspace:req.workspace }, // Filter by the provided email
-            { $pull: { labels:  labels  } }, // Pull labels matching any in the array
-            { new: true } 
+            { workspace: req.workspace }, // Filter: Match by the workspace
+            { $pull: { labels: labels } }, // Update: Remove all labels that match any in the array
+            { new: true } // Option: Ensure the response contains the updated document
         );
+
         console.log(deleteLabel);
-        
-        res.status(200).json({ message: 'Labels deleted from  documents',deleteLabel });
+
+        res.status(200).json({ message: 'Labels deleted from documents', deleteLabel });
     } catch (error) {
         res.status(500).json({ error: 'An error occurred while deleting the labels' });
     }
 });
 
-router.post('/encrypt-customer-ids', (req, res) => {
+//Encrypt
+router.post('/encrypt-customer-ids', (req, res) => {//Define a POST route to encrypt customer IDs
+
+    //Extract the `customerIds` array from the request body
     const { customerIds } = req.body;
 
-
     try {
+        //Convert the customer IDs to a JSON string
         const jsonString = JSON.stringify(customerIds);
-        const compressedBuffer = zlib.gzipSync(jsonString); // Ensure gzipSync is used
+
+        //Compress the JSON string using gzipSync to ensure synchronous compression
+        const compressedBuffer = zlib.gzipSync(jsonString); // Compress the string using gzip
+
+        //Encode the compressed buffer as a base64 string for easy transmission
         const base64Encoded = compressedBuffer.toString('base64');
+
         res.status(200).json({ encryptedData: base64Encoded });
     } catch (error) {
         res.status(500).json({ message: 'Encryption failed', error: error.message });
     }
 });
 
-//assign
-router.post('/assign',authorization, async (req, res) => {
-    const { label } = req.body;
-    console.log(req.body);
-    //console.log(req.workspace);
-    
-    try {
-        //const organization = await Organization.findOne({ workspace: req.workspace });
+//assign the labels
+router.post('/assign', authorization, async (req, res) => {//Define a POST route to assign labels to customers, using `authorization` middleware
 
+    //Extract the `label` field from the request body
+    const { label } = req.body;
+
+    console.log(req.body);
+
+    try {
+        //Retrieve the base64-encoded string from the request body and decode it to a Buffer
         const encodedString = req.body.customerIds;
         const decodedBuffer = Buffer.from(encodedString, 'base64');
 
         console.log("#################################################################");
-        console.log("encodedString-------=======>",decodedBuffer);
+        console.log("encodedString-------=======>", decodedBuffer);
         console.log("##########################################################################");
-console.log("decodedBuffer",decodedBuffer);
 
+        //Decompress the buffer using zlib's gunzip method
         const decompressedBuffer = await new Promise((resolve, reject) => {
             zlib.gunzip(decodedBuffer, (err, result) => {
                 if (err) {
@@ -101,27 +124,27 @@ console.log("decodedBuffer",decodedBuffer);
                 }
             });
         });
-        console.log("decompressedBuffer",decompressedBuffer);
-        
 
+        //Convert the decompressed buffer to a string and log it for verification
         const decodedString = decompressedBuffer.toString('utf-8');
-        console.log("decodedString",decodedString);
-        
-        req.decryptedData = JSON.parse(decodedString); 
-        console.log("decryptedData",req.decryptedData);
+        console.log("decodedString", decodedString);
 
-        const id = req.decryptedData.ids
-console.log("ids",id);
+        //Parse the JSON string to extract the decrypted data
+        req.decryptedData = JSON.parse(decodedString);
+        console.log("decryptedData", req.decryptedData);
 
+        //Extract the customer IDs from the decrypted data
+        const id = req.decryptedData.ids;
+        console.log("ids", id);
+
+        //Use `updateMany` to assign the label to the specified customers in the same workspace
         const updateResult = await Customer.updateMany(
-            { _id: { $in:id  },workspace:req.workspace },
-            { $addToSet: { labels: label } }
+            { _id: { $in: id }, workspace: req.workspace }, // Filter by customer IDs and workspace
+            { $addToSet: { labels: label } } // Add the label, avoiding duplicates
         );
 
         res.status(200).json({
-            message: `Label  assigned successfully to customers.`,
-            // matchedCount: updateResult.matchedCount || 0,
-            // modifiedCount: updateResult.modifiedCount || 0,
+            message: `Label assigned successfully to customers.`,
         });
     } catch (error) {
         res.status(500).json({ message: 'Error assigning label to customers', error: error.message });

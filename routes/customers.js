@@ -43,22 +43,8 @@ router.post('/add', authorization, async (req, res) => {
 //List Route
 router.get("/list", authorization, async (req, res) => {
   try {
-    // Use the `email` or `workspace` extracted by the `verifyToken` middleware
-    //const {  workspace } = req;
-    
-  //   if (!email) {
-  //     return res.status(400).json({ success: false, message: "Invalid token or no email provided" });
-  //   }
-
-    // Query the database to find customers associated with the email or workspace
     const customers = await Customer.find({ workspace:req.workspace }); // Update fields as per your schema
-
-  //   if (!customers || customers.length === 0) {
-  //     return res.status(404).json({ success: false, message: "No data found for the given token" });
-  //   }
-
-    // Respond with the filtered customer data
-    res.status(200).json({ success: true, data: customers });
+  res.status(200).json({ success: true, data: customers });
   } catch (error) {
     console.error("Error fetching customers:", error);
     res.status(500).json({ success: false, message: "Internal Server Error" });
@@ -127,7 +113,6 @@ router.post('/encrypt-customer-ids', (req, res) => {
 
 
 // Delete multiple customers by encrypted IDs
-
 router.post('/deletes', authorization, async (req, res) => {
     const { encryptedIds } = req.body; // Encrypted and compressed customer IDs (base64 string)
     const workspace = req.workspace;
