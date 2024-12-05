@@ -81,8 +81,4 @@ const login = async (req, res) => {
 module.exports = {
     register,
     login,
-<<<<<<< HEAD
 };
-=======
-};
->>>>>>> 6796a85c2cb04d9c90ec4c11dd4babdbc4ad4fd1

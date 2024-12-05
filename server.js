@@ -7,15 +7,9 @@ const cors = require('cors');
 require('dotenv').config();
 
 //Import route files
-
-const authRoutes = require('./routes/customers');
-const listRoutes = require('./routes/labelRoute');
-const userRoutes = require('./routes/user');
-
 const authRoutes = require('./routes/customerRoute');
 const userRoutes = require('./routes/userRoute');
 const labelRoutes = require('./routes/labelRoute')
-
 //Create an Express app instance
 const app = express();
 
@@ -30,16 +24,11 @@ app.use(cors()); // Allow all origins by default
 //Set up the routes
 app.use('/customer', authRoutes); // Route for customer-related operations
 app.use('/user', userRoutes); // Route for user-related operations
-app.use('/labels',labelRoutes);// Route for label-related operations
+app.use('/label',labelRoutes);// Route for label-related operations
 //MongoDB connection setup using mongoose
 mongoose.connect(process.env.MONGO_URI, {
-
-    // useNewUrlParser: true, // Use new URL parser to avoid deprecation warnings
-    // useUnifiedTopology: true, // Use the new topology engine to handle MongoDB connection
-
     //useNewUrlParser: true, // Use new URL parser to avoid deprecation warnings
     //useUnifiedTopology: true, // Use the new topology engine to handle MongoDB connection
-
 })
     .then(() => console.log('MongoDB connected')) // Log success message when connected
     .catch(err => console.error('MongoDB connection error:', err)); // Catch any connection errors
