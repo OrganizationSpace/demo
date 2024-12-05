@@ -25,7 +25,7 @@ const addCustomer = async (req, res) => {
 
         await newCustomer.save();
 
-        res.status(201).json({ message: 'Customer added successfully', customer: newCustomer });
+        res.status(200).json({ message: 'Customer added successfully', customer: newCustomer });
     } catch (error) {
         console.error('Error adding customer:', error.message);
         res.status(500).json({ message: 'Error adding customer', error: error.message });
