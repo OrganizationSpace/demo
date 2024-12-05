@@ -1,5 +1,4 @@
 const Customer = require('../models/Customer');
-const { encryptCustomerIds, decryptCustomerIds } = require('../functions/utils');
 
 /**
  * Adds a new customer.
@@ -91,20 +90,6 @@ const deleteCustomer = async (req, res) => {
     }
 };
 
-/**
- * Encrypts customer IDs.
- */
-const encryptCustomerIdsHandler = (req, res) => {
-    const { customerIds } = req.body;
-
-    try {
-        const encryptedData = encryptCustomerIds(customerIds);
-        res.status(200).json({ encryptedData });
-    } catch (error) {
-        console.error('Encryption failed:', error.message);
-        res.status(500).json({ message: 'Encryption failed', error: error.message });
-    }
-};
 
 /**
  * Deletes multiple customers by encrypted IDs.
@@ -148,7 +133,6 @@ module.exports = {
     listCustomers,
     updateCustomer,
     deleteCustomer,
-    encryptCustomerIdsHandler,
     deleteMultipleCustomers,
 };
 
