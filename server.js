@@ -8,7 +8,7 @@ require('dotenv').config();
 
 //Import route files
 const authRoutes = require('./routes/customers');
-const listRoutes = require('./routes/label');
+const listRoutes = require('./routes/labelRoute');
 const userRoutes = require('./routes/user');
 
 //Create an Express app instance
@@ -29,8 +29,8 @@ app.use('/user', userRoutes); // Route for user-related operations
 
 //MongoDB connection setup using mongoose
 mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true, // Use new URL parser to avoid deprecation warnings
-    useUnifiedTopology: true, // Use the new topology engine to handle MongoDB connection
+    // useNewUrlParser: true, // Use new URL parser to avoid deprecation warnings
+    // useUnifiedTopology: true, // Use the new topology engine to handle MongoDB connection
 })
     .then(() => console.log('MongoDB connected')) // Log success message when connected
     .catch(err => console.error('MongoDB connection error:', err)); // Catch any connection errors
