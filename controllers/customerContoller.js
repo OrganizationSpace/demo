@@ -1,4 +1,5 @@
 const Customer = require('../models/Customer');
+const { decryptedCustomerIds } = require('../functions/utils');
 
 /**
  * Adds a new customer.
@@ -95,38 +96,36 @@ const deleteCustomer = async (req, res) => {
  * Deletes multiple customers by encrypted IDs.
  */
 const deleteMultipleCustomers = async (req, res) => {
-    const { encryptedCustomerIds } = req.body;
-    const workspace = req.workspace;
+    let { customerIds } = req.body;
+
+    // Log to verify the input format
+    console.log('Received customerIds:', customerIds);
 
     try {
-        if (!encryptedCustomerIds) {
-            return res.status(400).json({ error: 'Please provide encrypted customer IDs' });
+        // If the input is an array, extract the first element (the Base64-encoded string)
+        if (Array.isArray(customerIds) && customerIds.length > 0) {
+            customerIds = customerIds[0]; // Extract the first item from the array
         }
 
-        const ids = await decryptCustomerIds(encryptedCustomerIds);
+        console.log('Base64-encoded customerIds:', customerIds);
 
-        if (!Array.isArray(ids) || ids.length === 0) {
-            return res.status(400).json({ error: 'Decrypted data does not contain valid customer IDs' });
-        }
+        // Decrypt the Base64 string
+        const decryptedData = await decryptedCustomerIds(customerIds);
+        const customerIDs = decryptedData;
 
+        // Delete the customers by their decrypted IDs
         const result = await Customer.deleteMany({
-            workspace,
-            _id: { $in: ids },
+            workspace: req.workspace,
+            _id: { $in: customerIDs },
         });
 
-        if (result.deletedCount === 0) {
-            return res.status(404).json({ error: 'No customers found to delete' });
-        }
-
-        res.status(200).json({
-            success: true,
-            message: `${result.deletedCount} customer(s) deleted successfully`,
-        });
+        res.status(200).json({ message: 'Customer(s) deleted successfully.' });
     } catch (error) {
-        console.error('Error decrypting or deleting customers:', error);
-        res.status(500).json({ error: 'An error occurred while processing the request' });
+        console.error('Error:', error.message); // Log the error message
+        res.status(500).json({ message: 'Error assigning label to customers', error: error.message });
     }
 };
+
 
 module.exports = {
     addCustomer,
