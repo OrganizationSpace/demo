@@ -1,8 +1,10 @@
 const express = require('express');//Import the Express framework 
 const authorization = require('../functions/auth');//Import a custom authorization function for token handling 
+const decryptData = require('../functions/decrypt');//Import a custom Decryption function for decrypt the id and assign label
+const encryptData = require('../functions/encrypt');//Import a custom Encryption function for encrypt customer ids
 const Customer = require('../models/Customer');//Import the Customer model to interact with the Customer database collection
 const Organization = require('../models/Organization');//Import the Organization model to interact with the Organization database collection
-const zlib = require('zlib');//Import the Zlib library for data compression and decompression
+
 
 const router = express.Router();//Create an Express router instance to define and manage routes for the application
 
@@ -75,83 +77,52 @@ router.post('/delete', authorization, async (req, res) => {//Define a POST route
     }
 });
 
-//Encrypt
-router.post('/encrypt-customer-ids', (req, res) => {//Define a POST route to encrypt customer IDs
-
-    //Extract the `customerIds` array from the request body
-    const { customerIds } = req.body;
-
-    try {
-        //Convert the customer IDs to a JSON string
-        const jsonString = JSON.stringify(customerIds);
-
-        //Compress the JSON string using gzipSync to ensure synchronous compression
-        const compressedBuffer = zlib.gzipSync(jsonString); // Compress the string using gzip
-
-        //Encode the compressed buffer as a base64 string for easy transmission
-        const base64Encoded = compressedBuffer.toString('base64');
-
-        res.status(200).json({ encryptedData: base64Encoded });
-    } catch (error) {
-        res.status(500).json({ message: 'Encryption failed', error: error.message });
-    }
-});
-
-//assign the labels
-router.post('/assign', authorization, async (req, res) => {//Define a POST route to assign labels to customers, using `authorization` middleware
-
-    //Extract the `label` field from the request body
-    const { label } = req.body;
-
-    console.log(req.body);
+//Assigning the label 
+router.post('/assigns', authorization, async (req, res) => { 
+    const { label, customerIds } = req.body; // Extract label and encrypted customer IDs
+    console.log("Request Body:", req.body);
 
     try {
-        //Retrieve the base64-encoded string from the request body and decode it to a Buffer
-        const encodedString = req.body.customerIds;
-        const decodedBuffer = Buffer.from(encodedString, 'base64');
+        // Decrypt the customer IDs
+        const decryptedData = await decryptData(customerIds);
 
-        console.log("#################################################################");
-        console.log("encodedString-------=======>", decodedBuffer);
-        console.log("##########################################################################");
+        // Use the decrypted customer IDs directly (as strings) for MongoDB query
+        const customerIDs = decryptedData.ids; 
+        console.log("Decrypted Customer IDs:", customerIDs);
 
-        //Decompress the buffer using zlib's gunzip method
-        const decompressedBuffer = await new Promise((resolve, reject) => {
-            zlib.gunzip(decodedBuffer, (err, result) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve(result);
-                }
-            });
-        });
-
-        //Convert the decompressed buffer to a string and log it for verification
-        const decodedString = decompressedBuffer.toString('utf-8');
-        console.log("decodedString", decodedString);
-
-        //Parse the JSON string to extract the decrypted data
-        req.decryptedData = JSON.parse(decodedString);
-        console.log("decryptedData", req.decryptedData);
-
-        //Extract the customer IDs from the decrypted data
-        const id = req.decryptedData.ids;
-        console.log("ids", id);
-
-        //Use `updateMany` to assign the label to the specified customers in the same workspace
+        // Update customers in the database
         const updateResult = await Customer.updateMany(
-            { _id: { $in: id }, workspace: req.workspace }, // Filter by customer IDs and workspace
-            { $addToSet: { labels: label } } // Add the label, avoiding duplicates
+            { _id: { $in: customerIDs }, workspace: req.workspace }, // Match customers by IDs and workspace
+            { $addToSet: { labels: label } } // Add labels without duplicates
         );
 
+
         res.status(200).json({
-            message: `Label assigned successfully to customers.`,
+            message: `Label assigned successfully to customers.`
         });
     } catch (error) {
+        console.error("Error during label assignment:", error.message);
         res.status(500).json({ message: 'Error assigning label to customers', error: error.message });
     }
 });
 
+//Encrypt
+router.post('/encrypt', async (req, res) => {
+    const { customerIds } = req.body; // Extract customer IDs from the request body
 
+    try {
+        // Call the encryptData function to encrypt the customer IDs
+        const encryptedData = await encryptData(customerIds);
+
+        // Return the encrypted data as a response
+        res.status(200).json({ encryptedData });
+    } catch (error) {
+        console.error("Encryption error:", error.message);
+        res.status(500).json({ message: 'Encryption failed', error: error.message });
+    }
+});
+
+//Testing operator
 router.post('/test', authorization, async (req, res) => {
     const { labelsToRemove, labelToAdd, labelsToReplace, labelToPush } = req.body;
 
@@ -193,7 +164,7 @@ router.post('/test', authorization, async (req, res) => {
     }
 });
 
- 
+
 module.exports =router;
 
 
