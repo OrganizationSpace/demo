@@ -7,8 +7,8 @@ const cors = require('cors');
 require('dotenv').config();
 
 //Import route files
-const authRoutes = require('./routes/customers');
-const userRoutes = require('./routes/user');
+const authRoutes = require('./routes/customerRoute');
+const userRoutes = require('./routes/userRoute');
 const labelRoutes = require('./routes/labelRoute')
 //Create an Express app instance
 const app = express();

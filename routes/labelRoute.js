@@ -6,7 +6,7 @@ const {
     assignLabel, 
     encryptDataHandler, 
     testOperators 
-} = require('../controlllers/labelControllers');
+} = require('../controllers/labelControllers');
 const authorization = require('../functions/auth');
 
 const router = express.Router();
