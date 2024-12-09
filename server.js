@@ -10,6 +10,10 @@ require('dotenv').config();
 const authRoutes = require('./routes/customerRoute');
 const userRoutes = require('./routes/userRoute');
 const labelRoutes = require('./routes/labelRoute')
+const customerRoutes = require('./routes/customer');
+const usersRoutes = require('./routes/user');
+const labelsRoutes = require('./routes/label')
+
 //Create an Express app instance
 const app = express();
 
@@ -17,14 +21,20 @@ const app = express();
 app.use(bodyParser.json());  // Middleware to parse JSON bodies
 app.use(morgan('dev')); // Middleware to log HTTP requests (using 'dev' format)
 app.use(express.urlencoded({ extended: true })); // Middleware to parse URL-encoded data
+app.use(express.json());  // Middleware to parse JSON bodies
 
 //Middleware to handle Cross-Origin Resource Sharing (CORS)
 app.use(cors()); // Allow all origins by default
 
 //Set up the routes
-app.use('/customer', authRoutes); // Route for customer-related operations
-app.use('/user', userRoutes); // Route for user-related operations
-app.use('/label',labelRoutes);// Route for label-related operations
+app.use('/customers', authRoutes); // Route for customer-related operations
+app.use('/users', userRoutes); // Route for user-related operations
+app.use('/labels',labelRoutes);// Route for label-related operations
+app.use('/customer', customerRoutes); // Route for customer-related operations
+app.use('/user', usersRoutes); // Route for user-related operations
+app.use('/label',labelsRoutes);// Route for label-related operations
+
+
 //MongoDB connection setup using mongoose
 mongoose.connect(process.env.MONGO_URI, {
     //useNewUrlParser: true, // Use new URL parser to avoid deprecation warnings
