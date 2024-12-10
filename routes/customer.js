@@ -123,72 +123,71 @@ router.post('/delete', authorization, async (req, res) => {
   
 // Delete multiple customers by encrypted IDs
 router.post('/deletes', authorization, async (req, res) => {
-    // Extract the encrypted customer IDs (base64 string) from the request body
-    const { encryptedIds } = req.body; 
-    // Extract the workspace from the authorized token (user context)
+    const { encryptedIds } = req.body;
     const workspace = req.workspace;
-    console.log("encryptedIds:",encryptedIds);
-    
+
+    console.log("encryptedIds:", encryptedIds);
+
     try {
-        // Validate the input to ensure encryptedIds are provided
+        // Validate input
         if (!encryptedIds) {
-            // If no encrypted IDs are provided, return a 400 Bad Request error
             return res.status(400).json({ error: 'Please provide encrypted customer IDs' });
         }
 
-        // Decode the Base64 encoded encrypted customer IDs
+        // Decode the base64 string to a buffer
         const decodedBuffer = Buffer.from(encryptedIds, 'base64');
-        console.log("decodedBuffer:",decodedBuffer);
-        
-        // Decompress the decoded buffer (Assume it is gzip compressed)
+        console.log("#################################################################");
+        console.log("decodedBuffer-------=======>", decodedBuffer);
+        console.log("##########################################################################");
+
+        // Decompress the buffer
         const decompressedBuffer = await new Promise((resolve, reject) => {
             zlib.gunzip(decodedBuffer, (err, result) => {
-                if (err) reject(err); // Reject if there is an error during decompression
-                else resolve(result); // Resolve with the decompressed result
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
             });
         });
-        console.log("decompressedBuffer",decompressedBuffer);
-        
 
-        // Convert the decompressed buffer into a string (UTF-8 format)
-        const decryptedString = decompressedBuffer.toString('utf-8');
+        // Convert decompressed buffer to string
+        const decodedString = decompressedBuffer.toString('utf-8');
+        console.log("decodedString", decodedString);
 
-        // Parse the JSON string to get the list of customer IDs
-        const ids = JSON.parse(decryptedString);
+        // Parse JSON string to get decrypted data
+        const decryptedData = JSON.parse(decodedString);
+        console.log("decryptedData", decryptedData);
 
-        // Log the decrypted IDs for debugging purposes
-        console.log('Decrypted IDs:', ids);
+        // Extract customer IDs
+        const ids = decryptedData.ids;
+        console.log("ids", ids);
 
-        // Validate the decrypted IDs to ensure it's an array and contains elements
+        // Validate the IDs
         if (!Array.isArray(ids) || ids.length === 0) {
-            // If the decrypted data is invalid, return a 400 Bad Request error
             return res.status(400).json({ error: 'Decrypted data does not contain valid customer IDs' });
         }
 
-        // Attempt to delete customers from the database matching the decrypted IDs and workspace
-        const result = await Customer.deleteMany({
-            workspace, // Filter by workspace
-            _id: { $in: ids }, // Match the customer IDs against the decrypted list
+        // MongoDB query to delete customers
+        const deleteResult = await Customer.deleteMany({
+            _id: { $in: ids },
+            workspace: req.workspace,
         });
-        console.log(result);
-        
-        // Check if any customers were deleted
-        if (result.deletedCount === 0) {
-            // If no customers were deleted, return a 404 Not Found error
+
+        console.log("Delete Result:", deleteResult);
+
+        // Handle case where no records were deleted
+        if (deleteResult.deletedCount === 0) {
             return res.status(404).json({ error: 'No customers found to delete' });
         }
 
-        // Send a success response indicating how many customers were deleted
         res.status(200).json({
             success: true,
-            message: `${result.deletedCount} customer(s) deleted successfully`,
+            message: `${deleteResult.deletedCount} customer(s) deleted successfully.`,
         });
     } catch (error) {
-        // Log the error for debugging purposes if anything fails during decryption or deletion
-        console.error('Error decrypting or deleting customers:', error);
-
-        // Return a 500 Internal Server Error response with a generic error message
-        res.status(500).json({ error: 'An error occurred while processing the request' });
+        console.error('Error:', error.message);
+        res.status(500).json({ message: 'Error deleting customers', error: error.message });
     }
 });
 
