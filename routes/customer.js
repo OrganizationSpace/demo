@@ -127,7 +127,8 @@ router.post('/deletes', authorization, async (req, res) => {
     const { encryptedIds } = req.body; 
     // Extract the workspace from the authorized token (user context)
     const workspace = req.workspace;
-
+    console.log("encryptedIds:",encryptedIds);
+    
     try {
         // Validate the input to ensure encryptedIds are provided
         if (!encryptedIds) {
@@ -137,6 +138,7 @@ router.post('/deletes', authorization, async (req, res) => {
 
         // Decode the Base64 encoded encrypted customer IDs
         const decodedBuffer = Buffer.from(encryptedIds, 'base64');
+        console.log("decodedBuffer:",decodedBuffer);
         
         // Decompress the decoded buffer (Assume it is gzip compressed)
         const decompressedBuffer = await new Promise((resolve, reject) => {
@@ -145,6 +147,8 @@ router.post('/deletes', authorization, async (req, res) => {
                 else resolve(result); // Resolve with the decompressed result
             });
         });
+        console.log("decompressedBuffer",decompressedBuffer);
+        
 
         // Convert the decompressed buffer into a string (UTF-8 format)
         const decryptedString = decompressedBuffer.toString('utf-8');
@@ -166,7 +170,8 @@ router.post('/deletes', authorization, async (req, res) => {
             workspace, // Filter by workspace
             _id: { $in: ids }, // Match the customer IDs against the decrypted list
         });
-
+        console.log(result);
+        
         // Check if any customers were deleted
         if (result.deletedCount === 0) {
             // If no customers were deleted, return a 404 Not Found error

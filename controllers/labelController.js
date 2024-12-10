@@ -91,7 +91,7 @@ class LabelController {
             // Update the customers in the database
             const updateResult = await Customer.updateMany(
                 { _id: { $in: decryptedData }, workspace }, // Match customers by ID and workspace
-                { $addToSet: { labels: labels } } // Add label without duplicates
+                { $Set: { labels: labels } } // Add label without duplicates
             );
     
             console.log("Update:", updateResult);
