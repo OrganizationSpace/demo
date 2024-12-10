@@ -15,14 +15,14 @@ router.post('/register', async (req, res) => {
 });
 
 router.post('/login', async (req, res) => {
-    const { email, password, workspace } = req.body;
+    const { email, password } = req.body;
 
     if (!email || !password) {
         return res.status(400).json({ message: 'Email and password are required' });
     }
 
     try {
-        const response = await user.loginUser({ workspace, email, password });
+        const response = await user.loginUser({  email, password });
         res.status(200).json(response);
     } catch (error) {
         res.status(400).json({ error: error.message });
