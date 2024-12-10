@@ -46,8 +46,10 @@ class userController {
         }
 
         const id = loginCustomer._id.toString();
+        console.log("Id",id);
+        
         const token = jwt.sign(
-            { id, email: loginCustomer.email, workspace },
+            { _id: loginCustomer.id, email: loginCustomer.email, workspace:  loginCustomer.workspace},
             process.env.JWT_SECRET,
             { expiresIn: '6h' }
         );
