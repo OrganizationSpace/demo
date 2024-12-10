@@ -9,7 +9,7 @@ router.post('/add',authorization, async (req, res) => {
     console.log("label",req.body);
 
     const workspace = req.workspace;  // Assuming the workspace is attached to the req object
-    console.log("workspae",workspace);
+    console.log("workspace",workspace);
     
     try {
         // Pass the extracted data (labels and workspace) to the controller method
@@ -69,7 +69,7 @@ router.post('/assign', authorization, async (req, res) => {
 
     try {
         // Pass data to the controller method
-        const result = await label.assignLabel({ label: labels, workspace, customerIds });
+        const result = await label.assignLabel({ labels: labels, workspace, customerIds });
 
         // Send the success response to the client
         res.status(200).json(result);
@@ -81,24 +81,4 @@ router.post('/assign', authorization, async (req, res) => {
 });
 
 module.exports = router;
-
-
-// const { 
-//     addLabel, 
-//     listLabels, 
-//     deleteLabel, 
-//     assignLabel, 
-//     encryptCustomerIds, 
-//     testOperators 
-// } = require('../controllers/labelController');
-// const authorization = require('../functions/auth');
-
-
-// // Define routes and map them to controller functions
-// router.post('/add', authorization, addLabel);
-// router.get('/list', authorization, listLabels);
-// router.post('/delete', authorization, deleteLabel);
-// router.post('/assigns', authorization, assignLabel);
-// router.post('/encrypt',encryptCustomerIds );
-// router.post('/test', authorization, testOperators);
 

@@ -1,13 +1,32 @@
+const express = require('express');
+const router = express.Router();
+const userController = require('../controllers/userController');
+const user = new userController()
 
-const express = require('express'); // Import the Express framework
-const { register, login } = require('../controllers/userController'); // Import the controller functions
+router.post('/register', async (req, res) => {
+    const { Organization_name, name, email, password, contact_number } = req.body;
 
-const router = express.Router(); // Create an Express router instance
+    try {
+        const response = await user.registerUser({ Organization_name, name, email, password, contact_number });
+        res.status(200).json(response);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
 
-// Define the registration route
-router.post('/register', register);
+router.post('/login', async (req, res) => {
+    const { email, password, workspace } = req.body;
 
-// Define the login route
-router.post('/login', login);
+    if (!email || !password) {
+        return res.status(400).json({ message: 'Email and password are required' });
+    }
+
+    try {
+        const response = await user.loginUser({ workspace, email, password });
+        res.status(200).json(response);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
 
 module.exports = router;
