@@ -79,7 +79,7 @@ router.post('/assign', authorization, async (req, res) => // Define a POST route
 
     try {
         // Pass data to the controller method
-        const result = await label.assignLabel({ labels: labels, workspace, customerIds });
+        const result = await label.assignLabel({ labels, workspace, customerIds });
 
         // Send the success response to the client
         res.status(200).json(result);

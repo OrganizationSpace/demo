@@ -96,18 +96,18 @@ class LabelController {
             // Log the workspace
             console.log("Workspace:", workspace);
     
-            // Update the customers in the database by assigning labels using set
-            const updateResult = await Customer.updateMany(
-                { _id: { $in: decryptedData }, workspace }, // Match customers by ID and workspace
-                { $set: { labels: labels } } // Add label without duplicates
-            );
-    
-            console.log("Update:", updateResult);
-    
-            return {
-                message: 'Label assigned successfully to customers.',
-                updateResult,
-            };
+            // Update the customers in the database
+        const updateResult = await Customer.updateMany(
+            { _id: { $in: decryptedData }, workspace }, // Match customers by ID and workspace
+            { $set: { labels } } // Replace the `labels` array completely
+        );
+
+        console.log("Update Result:", updateResult);
+
+        return {
+            message: 'Label assigned successfully to customers.',
+            updateResult,
+         };
         } catch (error) {
             console.error("Error in assignLabel:", error.message);
             throw new Error(`Error assigning label to customers: ${error.message}`);
