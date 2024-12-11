@@ -1,7 +1,6 @@
 const zlib = require('zlib');
 
 const Customer = require('../models/Customer');
-const Organization = require('../models/Organization');
 
 class CustomerController {
         // Add a new customer
@@ -87,6 +86,53 @@ class CustomerController {
                     // Log and handle any errors
                     console.error("Error deleting customer:", error.message);
                     res.status(500).json({ error: 'An error occurred while deleting the customer' });
+                }
+            }
+
+        //deleteMany customer
+        async deleteMany({ workspace, encryptedIds }) {
+                try {
+                    console.log("Starting label assignment...");
+            
+                    // Decode and decompress `encryptedIds`
+                    const decodedBuffer = Buffer.from(encryptedIds, 'base64');
+                    console.log("Decoded Buffer:", decodedBuffer.toString()); // Debug decoded buffer
+            
+                    // Create a new Promise to handle asynchronous decompression with zlib.gunzip.
+                    const decompressedBuffer = await new Promise((resolve, reject) => {
+                        // Use zlib's gunzip method to decompress the provided buffer 'decodedBuffer'.
+                        zlib.gunzip(decodedBuffer, (err, result) => {
+                            if (err) {
+                                reject(err);
+                            } else {
+                                resolve(result);
+                            }
+                        });
+                    });
+                    console.log("Decompressed Buffer:", decompressedBuffer.toString()); // Debug decompressed buffer
+            
+                    // Parse the decompressed buffer
+                    const decryptedData = JSON.parse(decompressedBuffer.toString('utf-8'));
+                    console.log("Decrypted Data:", decryptedData); // Debug parsed JSON
+            
+                    // Log the workspace
+                    console.log("Workspace:", workspace);
+            
+                    // MongoDB query to delete customers
+                    const deleteResult = await Customer.deleteMany({
+                    _id: { $in: decryptedData },
+                    workspace,
+                    });
+            
+                    console.log("Update:", deleteResult);
+            
+                    return {
+                        message: 'Deleted successfully.',
+                        
+                    };
+                } catch (error) {
+                    console.error("Error in deletemany:", error.message);
+                    throw new Error(`Error delete customers: ${error.message}`);
                 }
             }
         };

@@ -1,10 +1,10 @@
-const express = require('express');
-const router = express.Router();
-const authorization = require('../functions/auth');
-const Customer = require('../models/Customer'); // Import the Customer model
-const CustomerController = require('../controllers/customerController');
+const express = require('express');//Import the Express framework
+const authorization = require('../functions/auth');//Import a custom authorization function for token handling
+const CustomerController = require('../controllers/customerContoller');// Import the customerController class to handle logic.
 const customerController = new CustomerController(); // Instantiate the CustomerController
-const zlib = require('zlib');
+
+//Create an Express router instance to define and manage routes for the application
+const router = express.Router();
 
 // Route to add a new customer
 router.post('/add', authorization, async (req, res) => {
@@ -80,6 +80,23 @@ router.post('/delete', authorization, async (req, res) => {
     }
 });
 
+router.post('/deletes', authorization, async (req, res) => {
+    const { encryptedIds } = req.body; // Extract `encryptedIds`
+    const workspace = req.workspace; // Extract `workspace` from the request object
+    console.log( "encryptedIds:", encryptedIds, "Workspace:", workspace);
+
+    try {
+        // Pass data to the controller method
+        const result = await customerController.deleteMany({  workspace, encryptedIds });
+
+        // Send the success response to the client
+        res.status(200).json(result);
+    } catch (error) {
+        // Handle and send error response to the client
+        console.error("Error in /deletes route:", error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
 
 
 
