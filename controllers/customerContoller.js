@@ -54,7 +54,7 @@ class CustomerController {
     
                 // If no customer is found, return a 404 response
                 if (!updatedCustomer) {
-                    return res.status(404).json({ message: 'Customer not found' });
+                    return res.status(400).json({ message: 'Customer not found' });
                 }
     
                 // Send a success response with the updated customer data
@@ -74,7 +74,7 @@ class CustomerController {
         
                     // If no customer was found and deleted, return a 404 response
                     if (deletedCustomer.deletedCount === 0) {
-                        return res.status(404).json({ error: 'Customer not found' });
+                        return res.status(400).json({ error: 'Customer not found' });
                     }
         
                     // Send a success response with a message confirming the deletion
@@ -89,3 +89,6 @@ class CustomerController {
                     res.status(500).json({ error: 'An error occurred while deleting the customer' });
                 }
             }
+        };
+    
+        module.exports = CustomerController;
