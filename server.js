@@ -10,9 +10,6 @@ require('dotenv').config();
 const authRoutes = require('./routes/customerRoute');
 const userRoutes = require('./routes/userRoute');
 const labelRoutes = require('./routes/labelRoute')
-const customerRoutes = require('./routes/customer');
-const usersRoutes = require('./routes/user');
-const labelsRoutes = require('./routes/label')
 
 //Create an Express app instance
 const app = express();
@@ -30,9 +27,6 @@ app.use(cors()); // Allow all origins by default
 app.use('/customers', authRoutes); // Route for customer-related operations
 app.use('/users', userRoutes); // Route for user-related operations
 app.use('/labels',labelRoutes);// Route for label-related operations
-app.use('/customer', customerRoutes); // Route for customer-related operations
-app.use('/user', usersRoutes); // Route for user-related operations
-app.use('/label',labelsRoutes);// Route for label-related operations
 
 
 //MongoDB connection setup using mongoose
